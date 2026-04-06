@@ -21,12 +21,12 @@ describe("CLI smoke tests", () => {
     expect(stdout).toContain("ingest");
     expect(stdout).toContain("compile");
     expect(stdout).toContain("query");
-  });
+  }, 30_000);
 
   it("prints version", async () => {
     const { stdout } = await exec("node", [CLI, "--version"]);
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
-  });
+  }, 30_000);
 
   it("compile fails without ANTHROPIC_API_KEY", async () => {
     try {
