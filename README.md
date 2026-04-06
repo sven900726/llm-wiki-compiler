@@ -4,6 +4,8 @@ Compile raw sources into an interlinked markdown wiki.
 
 Inspired by Karpathy's [LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) pattern: instead of re-discovering knowledge at query time, compile it once into a persistent, browsable artifact that compounds over time.
 
+![llmwiki demo](docs/images/demo.gif)
+
 ## Who this is for
 
 - **AI researchers and engineers** building persistent knowledge from papers, docs, and notes
@@ -97,9 +99,9 @@ Try it on any article or document:
 
 ```bash
 mkdir my-wiki && cd my-wiki
-llmwiki ingest https://en.wikipedia.org/wiki/Knowledge_compilation
+llmwiki ingest https://en.wikipedia.org/wiki/Andrej_Karpathy
 llmwiki compile
-llmwiki query "how does knowledge compilation work?"
+llmwiki query "What terms did Andrej coin?"
 ```
 
 See `examples/basic/` in the repo for pre-generated output you can browse without an API key.

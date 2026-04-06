@@ -198,14 +198,17 @@ async function extractForSource(
   root: string,
   sourceFile: string,
 ): Promise<ExtractionResult> {
-  output.header(`Extracting: ${sourceFile}`);
+  output.status("*", output.info(`Extracting: ${sourceFile}`));
 
   const sourcePath = path.join(root, SOURCES_DIR, sourceFile);
   const sourceContent = await readFile(sourcePath, "utf-8");
   const existingIndex = await safeReadFile(path.join(root, INDEX_FILE));
   const concepts = await extractConcepts(sourceContent, existingIndex);
 
-  if (concepts.length > 0) logExtractedConcepts(concepts);
+  if (concepts.length > 0) {
+    const names = concepts.map((c) => c.concept).join(", ");
+    output.status("*", output.dim(`  Found ${concepts.length} concepts: ${names}`));
+  }
   return { sourceFile, sourcePath, sourceContent, concepts };
 }
 
@@ -267,8 +270,6 @@ async function generateMergedPage(
   const existingPage = await safeReadFile(pagePath);
   const relatedPages = await loadRelatedPages(root, entry.slug);
 
-  output.status(">", output.info(`Generating: ${entry.concept.concept}`));
-
   const system = buildPagePrompt(
     entry.concept.concept,
     entry.combinedContent,
@@ -281,11 +282,7 @@ async function generateMergedPage(
     messages: [
       { role: "user", content: `Write the wiki page for "${entry.concept.concept}".` },
     ],
-    stream: true,
-    onToken: (token) => process.stdout.write(output.dim(token)),
   });
-
-  process.stdout.write("\n");
 
   const now = new Date().toISOString();
   const existing = existingPage ? parseFrontmatter(existingPage) : null;
@@ -313,8 +310,6 @@ async function extractConcepts(
   sourceContent: string,
   existingIndex: string,
 ): Promise<ExtractedConcept[]> {
-  output.status("*", output.info("Extracting concepts..."));
-
   const system = buildExtractionPrompt(sourceContent, existingIndex);
   const rawOutput = await callClaude({
     system,
@@ -323,16 +318,6 @@ async function extractConcepts(
   });
 
   return parseConcepts(rawOutput);
-}
-
-/** Log the list of extracted concepts to the terminal. */
-function logExtractedConcepts(
-  concepts: ReturnType<typeof parseConcepts>,
-): void {
-  for (const c of concepts) {
-    const tag = c.is_new ? output.success("NEW") : output.dim("update");
-    output.status("*", `${output.concept(c.concept)} [${tag}] — ${c.summary}`);
-  }
 }
 
 
@@ -389,7 +374,6 @@ async function writePageIfValid(
   }
 
   await atomicWrite(pagePath, content);
-  output.status("+", output.success(`Wrote: ${conceptTitle}`));
 }
 
 /**
