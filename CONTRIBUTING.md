@@ -34,7 +34,16 @@ npm test         # Run all tests
 npm run dev      # Watch mode for development
 ```
 
-**Always run `npm test` before submitting a PR.** All tests must pass.
+**Before submitting a PR, run all checks:**
+
+```bash
+npx tsc --noEmit   # Type-check
+npm run build       # Build
+npm test            # Tests
+fallow              # Codebase health (dead code, duplication, complexity)
+```
+
+All tests must pass and fallow must report no issues. Use `fallow fix --yes` to auto-fix unused exports, then fix any remaining issues manually.
 
 ### Code Style
 

@@ -30,6 +30,15 @@ A knowledge compiler CLI. Raw sources in, interlinked wiki out.
 - Keep comments up-to-date with code changes
 - Document any non-obvious behavior
 
+### Pre-Commit Checks
+
+Before committing any work, and before considering any task complete, you must:
+
+1. `npx tsc --noEmit` — type-check passes
+2. `npm run build` — build succeeds
+3. `npm test` — all tests pass
+4. `fallow` — run the fallow codebase health analyzer. Fix all issues it reports (dead code, duplication, complexity). Use `fallow fix --dry-run` to preview auto-fixes, then `fallow fix --yes` to apply. Fix any remaining issues manually. Do not commit until fallow reports no issues.
+
 ## General Rules
 
 - First think through the problem, read the codebase for relevant files.
