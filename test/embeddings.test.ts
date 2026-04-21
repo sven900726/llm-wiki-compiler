@@ -12,6 +12,7 @@ import {
   findTopK,
   findRelevantPages,
   readEmbeddingStore,
+  resetStaleEmbeddingWarnings,
   resolveEmbeddingModel,
   updateEmbeddings,
   writeEmbeddingStore,
@@ -58,6 +59,7 @@ afterEach(() => {
   delete process.env.LLMWIKI_PROVIDER;
   delete process.env.LLMWIKI_EMBEDDING_MODEL;
   delete process.env.OPENAI_API_KEY;
+  resetStaleEmbeddingWarnings();
   vi.restoreAllMocks();
 });
 
@@ -171,24 +173,32 @@ describe("embedding model selection", () => {
   });
 
   it("ignores a mismatched store during semantic lookup", async () => {
-    const root = await makeRoot();
-    process.env.LLMWIKI_PROVIDER = "openai";
-    process.env.LLMWIKI_EMBEDDING_MODEL = "new-model";
-    await writeEmbeddingStore(root, makeStore([makeEntry("alpha", [1, 0])]));
+    const root = await setupOpenAIWithStaleStore();
 
     const result = await findRelevantPages(root, "alpha");
 
     expect(result).toEqual([]);
   });
 
+  it("warns once when the stored model differs from the active model", async () => {
+    const root = await setupOpenAIWithStaleStore();
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await findRelevantPages(root, "alpha");
+    await findRelevantPages(root, "alpha");
+
+    const warnings = log.mock.calls.filter(([line]) =>
+      typeof line === "string" && line.includes("Falling back to full-index"),
+    );
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0][0]).toContain('"new-model"');
+  });
+
   it("rebuilds live page embeddings when the stored model changes", async () => {
-    const root = await makeRoot();
-    process.env.LLMWIKI_PROVIDER = "openai";
-    process.env.LLMWIKI_EMBEDDING_MODEL = "new-model";
+    const root = await setupOpenAIWithStaleStore();
     process.env.OPENAI_API_KEY = "test-key";
     vi.spyOn(OpenAIProvider.prototype, "embed").mockResolvedValue([0.9, 0.1]);
     await writeConceptPage(root, "alpha");
-    await writeEmbeddingStore(root, makeStore([makeEntry("alpha", [1, 0])]));
 
     await updateEmbeddings(root, []);
     const store = await readEmbeddingStore(root);
@@ -198,3 +208,12 @@ describe("embedding model selection", () => {
     expect(store?.entries[0].vector).toEqual([0.9, 0.1]);
   });
 });
+
+/** Set up an OpenAI provider with an embedding store whose model is now stale. */
+async function setupOpenAIWithStaleStore(): Promise<string> {
+  const root = await makeRoot();
+  process.env.LLMWIKI_PROVIDER = "openai";
+  process.env.LLMWIKI_EMBEDDING_MODEL = "new-model";
+  await writeEmbeddingStore(root, makeStore([makeEntry("alpha", [1, 0])]));
+  return root;
+}
